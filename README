@@ -1,1 +1,2 @@
+For intermediate solution - Run the following command : ./uthread-demo
 Run solution for main.cpp: ./uthread-solution-exe 100000000 8
