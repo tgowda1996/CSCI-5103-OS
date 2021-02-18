@@ -48,19 +48,37 @@ static TCB *runningThread;
 // Start a countdown timer to fire an interrupt
 static void startInterruptTimer()
 {
-        // TODO
+	// TODO implement the scheduler function.
+	
+   // setting up timer
+   struct itimerval it_val;
+   it_val.it_value.tv_sec = 0;
+   it_val.it_value.tv_usec = runningThread->getQuantum();
+   it_val.it_interval.tv_sec = 0;
+   it_val.it_interval.tv_usec = 0; //setting interval to zero so that timer doesnt restart on its own
+   setitimer(ITIMER_VIRTUAL, &it_val, NULL);
 }
 
 // Block signals from firing timer interrupt
 static void disableInterrupts()
 {
         // TODO
+    sigset_t block_virtual_alarm;
+    sigemptyset(&block_virtual_alarm);
+    sigaddset(&block_virtual_alarm, SIGVTALRM);
+
+    sigprocmask(SIG_BLOCK, &block_virtual_alarm, NULL);
 }
 
 // Unblock signals to re-enable timer interrupt
 static void enableInterrupts()
 {
         // TODO
+    sigset_t unblock_virtual_alarm;
+    sigemptyset(&unblock_virtual_alarm);
+    sigaddset(&unblock_virtual_alarm, SIGVTALRM);
+
+    sigprocmask(SIG_UNBLOCK, &unblock_virtual_alarm, NULL);
 }
 
 
@@ -142,6 +160,10 @@ static void switchThreads()
     nextThread->loadContext();
 }
 
+static void scheduler_function(int signum) {
+	// TODO
+}
+
 
 // Library functions -----------------------------------------------------------
 
@@ -161,6 +183,17 @@ int uthread_init(int quantum_usecs)
         // Initialize any data structures
         // Setup timer interrupt and handler
         // Create a thread for the caller (main) thread
+
+    // registering the handler function for SIGVTALRM
+    struct sigaction timer_signal;
+    timer_signal.sa_handler = scheduler_function;
+    sigemptyset(&timer_signal.sa_mask);
+    timer_signal.sa_flags = 0;
+    
+    sigaction(SIGVTALRM, &timer_signal, NULL);
+
+    startInterruptTimer();
+
     for (int i = 100; i < 100 + MAX_THREAD_LIMIT; i++) {
         threadIdsAvailable.push_back(i);
     }
