@@ -1,2 +1,88 @@
-For intermediate solution - Run the following command : ./uthread-demo
-Run solution for main.cpp: ./uthread-solution-exe 100000000 8
+Project Members:
+Tushar Gowda  -  gowda019
+Pierce Gruidl -  gruid018
+
+Submission Summary:
+In this intermediate submission basic functionalities have been implemented in the file intermediate.cpp using the ULT library.
+We are creating 3 threads. The worker function takes 3 arguments : start, end and mod_number. It prints the values from start to end and yields when the current number is a multiple of mod_number.
+Thread 0 is the main thread.
+startInterruptTimer function has been commented out from the thread_yield function so that the program can run.
+
+Sample output for the following inputs - (1,50,5), (51, 100, 10), (100, 250, 15)
+
+Threads Created
+SWITCH
+Starting thread : 100
+Thread : 100 : 1
+Thread : 100 : 2
+Thread : 100 : 3
+Thread : 100 : 4
+Thread : 100 : 5
+SWITCH
+Starting thread : 101
+Thread : 101 : 51
+Thread : 101 : 52
+Thread : 101 : 53
+Thread : 101 : 54
+Thread : 101 : 55
+Thread : 101 : 56
+Thread : 101 : 57
+Thread : 101 : 58
+Thread : 101 : 59
+Thread : 101 : 60
+SWITCH
+Starting thread : 102
+Thread : 102 : 100
+Thread : 102 : 101
+Thread : 102 : 102
+Thread : 102 : 103
+Thread : 102 : 104
+Thread : 102 : 105
+SWITCH
+In main thread
+SWITCH
+Current thread : 100
+Thread : 100 : 6
+Thread : 100 : 7
+Thread : 100 : 8
+Thread : 100 : 9
+Thread : 100 : 10
+SWITCH
+Current thread : 101
+Thread : 101 : 61
+Thread : 101 : 62
+Thread : 101 : 63
+Thread : 101 : 64
+Thread : 101 : 65
+Thread : 101 : 66
+Thread : 101 : 67
+Thread : 101 : 68
+Thread : 101 : 69
+Thread : 101 : 70
+SWITCH
+Current thread : 102
+Thread : 102 : 106
+Thread : 102 : 107
+Thread : 102 : 108
+Thread : 102 : 109
+Thread : 102 : 110
+Thread : 102 : 111
+Thread : 102 : 112
+Thread : 102 : 113
+Thread : 102 : 114
+Thread : 102 : 115
+Thread : 102 : 116
+Thread : 102 : 117
+Thread : 102 : 118
+Thread : 102 : 119
+Thread : 102 : 120
+SWITCH
+In main thread
+SWITCH
+.
+.
+.
+
+It can be seen from the output that the yeild function is maintaining a FIFO queue and context switch is happening successfully.
+
+The timer has been set up and enable/disable code has been implemented in the stub provided. As discussed with Matt, havent included test cases to test out the timer and signal masking.
