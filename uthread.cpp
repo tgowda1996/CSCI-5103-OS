@@ -138,14 +138,19 @@ static void switchThreads()
 {
         // TODO
     volatile int flag = 0;
-    runningThread->saveContext();
+    // runningThread->saveContext();
+    getcontext(&(runningThread->_context));
     cout << "SWITCH" << endl; //: currentThread =  << runningThread->getId() <<  << flag << endl;
 
     if (flag == 1) {
-	//cout << "flag check for - " << runningThread->getId(); 
-        return;
+	cout << "flag check for - " << runningThread->getId()<<endl; 
+        cout<<"Enabling interrupts for " << runningThread->getId() << " and setting the timer" << endl;
+	startInterruptTimer();
+	enableInterrupts();
+	return;
     }
 
+    disableInterrupts();
     flag = 1;
     runningThread->setState(State::READY);
     addToQueue(ready_queue, runningThread);
@@ -157,11 +162,14 @@ static void switchThreads()
     }
     runningThread = nextThread;
     // cout<<"Loading "<<nextThread->getId()<<endl;
-    nextThread->loadContext();
+    // nextThread->loadContext();
+    setcontext(&(nextThread->_context));
 }
 
 static void scheduler_function(int signum) {
 	// TODO
+    cout<<"Timer interrupt - inside the thread - " << runningThread->getId() << endl;
+    uthread_yield();
 }
 
 
@@ -174,6 +182,8 @@ static void scheduler_function(int signum) {
 void stub(void *(*start_routine)(void *), void *arg)
 {
         // TODO
+    
+    enableInterrupts(); // makes sure that we are enabling interrupts before entering user code.
     void *return_value = (*start_routine)(arg);
     uthread_exit(return_value);
 }
@@ -192,14 +202,15 @@ int uthread_init(int quantum_usecs)
     
     sigaction(SIGVTALRM, &timer_signal, NULL);
 
-    startInterruptTimer();
-
     for (int i = 100; i < 100 + MAX_THREAD_LIMIT; i++) {
         threadIdsAvailable.push_back(i);
     }
     TCB *t0 = new TCB(0, State::RUNNING);
     runningThread = t0;
     idToTcb.insert(pair<int, TCB*>(0, t0));
+
+    startInterruptTimer();
+
     return 0;
 }
 

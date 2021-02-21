@@ -24,6 +24,8 @@ class TCB
 {
 
 public:
+	// Making context public
+	ucontext_t _context;    // The thread's saved context
 	/**
 	 * Constructor for TCB. Allocate a thread stack and setup the thread
 	 * context to call the stub function
@@ -86,7 +88,7 @@ private:
 	int _quantum;           // The time interval, as explained in the pdf.
 	State _state;           // The state of the thread
 	char* _stack;           // The thread's stack
-	ucontext_t _context;    // The thread's saved context
+	// ucontext_t _context;    // The thread's saved context
 };
 
 

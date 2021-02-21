@@ -50,15 +50,3 @@ int TCB::getQuantum() const
 	return this->_quantum;
 }
 
-int TCB::saveContext()
-{
-	getcontext(&(this->_context));
-	//std::cout<<"tid: "<<_tid<<std::endl;
-	return 1;
-}
-
-void TCB::loadContext()
-{
-	//std::cout<<"Loading "<<_tid<<std::endl;
-	setcontext(&(this->_context));
-}

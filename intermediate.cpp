@@ -1,5 +1,6 @@
 #include "uthread.h"
 #include <iostream>
+#include <unistd.h>
 
 using namespace std;
 
@@ -15,17 +16,18 @@ void *worker(void *arg) {
     cout<<"Starting thread : "<<my_tid<<endl;
     for (int i = args.start; i <= args.end; i++) {
         cout<<"Thread : "<<my_tid<<" : "<<i<<endl;
-        if (i % args.yeild_mod == 0) {
-            uthread_yield();
-	    cout<<"Current thread : "<<my_tid<<endl;
-        }
+	usleep(1);
+        //if (i % args.yeild_mod == 0) {
+            //uthread_yield();
+	    //cout<<"Current thread : "<<my_tid<<endl;
+        //}
     }
     return NULL;
 }
 
 int main(int argc, char *argv[]) {
     // Default to 1 ms time quantum
-    int quantum_usecs = 1000;
+    int quantum_usecs = 10;
 
     int *threads = new int[3];
     // Init user thread library
