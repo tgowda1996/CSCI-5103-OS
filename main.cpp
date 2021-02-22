@@ -19,6 +19,7 @@ void *worker(void *arg) {
     // NOTE: Parent thread must deallocate
     unsigned long *return_buffer = new unsigned long;
     *return_buffer = local_cnt;
+    cout << "Returning the value - " << local_cnt << "from thread - " << my_tid << "\n";
     return return_buffer;
 }
 
@@ -58,6 +59,7 @@ int main(int argc, char *argv[]) {
     unsigned long g_cnt = 0;
     for (int i = 0; i < thread_count; i++) {
         // Add thread result to global total
+	cout << "Joining\n" << endl;
         unsigned long *local_cnt;
         uthread_join(threads[i], (void**)&local_cnt);
         g_cnt += *local_cnt;

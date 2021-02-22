@@ -39,6 +39,7 @@ static deque<join_queue_entry_t*> join_queue;
 // general data structures
 static deque<int> threadIdsAvailable;
 static map<int,TCB*> idToTcb;
+static int quantum;
 
 static TCB *runningThread;
 
@@ -54,6 +55,7 @@ static void startInterruptTimer()
    struct itimerval it_val;
    it_val.it_value.tv_sec = 0;
    it_val.it_value.tv_usec = runningThread->getQuantum();
+   //cout << "Setting tv_usec to : " << runningThread->getQuantum() << endl;
    it_val.it_interval.tv_sec = 0;
    it_val.it_interval.tv_usec = 0; //setting interval to zero so that timer doesnt restart on its own
    setitimer(ITIMER_VIRTUAL, &it_val, NULL);
@@ -63,6 +65,7 @@ static void startInterruptTimer()
 static void disableInterrupts()
 {
         // TODO
+    //cout << "Disabling Interrupts\n";
     sigset_t block_virtual_alarm;
     sigemptyset(&block_virtual_alarm);
     sigaddset(&block_virtual_alarm, SIGVTALRM);
@@ -74,6 +77,7 @@ static void disableInterrupts()
 static void enableInterrupts()
 {
         // TODO
+    //cout << "Enabling Interrupts\n";
     sigset_t unblock_virtual_alarm;
     sigemptyset(&unblock_virtual_alarm);
     sigaddset(&unblock_virtual_alarm, SIGVTALRM);
@@ -118,17 +122,34 @@ int removeFromQueue(int tid, deque<TCB*>& queueToModify)
         return -1;
 }
 
-int isPresentInFinishedQueue(int tid) {
-        for (deque<finished_queue_entry_t*>::iterator iter = finished_queue.begin(); iter != finished_queue.end(); ++iter)
+// Removes the thread specified by the TID provided from the ready queue
+// Returns 0 on success, and -1 on failure (thread not in ready queue)
+int removeFromFinishedQueue(int tid, deque<finished_queue_entry*>& queueToModify)
+{
+        for (deque<finished_queue_entry*>::iterator iter = queueToModify.begin(); iter != queueToModify.end(); ++iter)
         {
                 if (tid == (*iter)->tcb->getId())
                 {
-                        return 1;
+                        queueToModify.erase(iter);
+                        return 0;
                 }
         }
 
         // Thread not found
-        return 0;
+        return -1;
+}
+
+static finished_queue_entry* isPresentInFinishedQueue(int tid) {
+        for (deque<finished_queue_entry_t*>::iterator iter = finished_queue.begin(); iter != finished_queue.end(); ++iter)
+        {
+                if (tid == (*iter)->tcb->getId())
+                {
+                        return (*iter);
+                }
+        }
+
+        // Thread not found
+        return NULL;
 }
 
 // Helper functions ------------------------------------------------------------
@@ -140,11 +161,11 @@ static void switchThreads()
     volatile int flag = 0;
     // runningThread->saveContext();
     getcontext(&(runningThread->_context));
-    cout << "SWITCH" << endl; //: currentThread =  << runningThread->getId() <<  << flag << endl;
+    //cout << "SWITCH" << endl; //: currentThread =  << runningThread->getId() <<  << flag << endl;
 
     if (flag == 1) {
-	cout << "flag check for - " << runningThread->getId()<<endl; 
-        cout<<"Enabling interrupts for " << runningThread->getId() << " and setting the timer" << endl;
+	//cout << "flag check for - " << runningThread->getId()<<endl; 
+        //cout<<"Enabling interrupts for " << runningThread->getId() << " and setting the timer" << endl;
 	startInterruptTimer();
 	enableInterrupts();
 	return;
@@ -156,7 +177,7 @@ static void switchThreads()
     addToQueue(ready_queue, runningThread);
 
     TCB *nextThread = popFromQueue(ready_queue);
-    while(isPresentInFinishedQueue(nextThread->getId())) {
+    while(isPresentInFinishedQueue(nextThread->getId()) != NULL) {
         removeFromQueue(nextThread->getId(), ready_queue); // dont want it to be in the ready queue again.
         nextThread = popFromQueue(ready_queue);
     }
@@ -168,7 +189,7 @@ static void switchThreads()
 
 static void scheduler_function(int signum) {
 	// TODO
-    cout<<"Timer interrupt - inside the thread - " << runningThread->getId() << endl;
+    //cout<<"Timer interrupt - inside the thread - " << runningThread->getId() << endl;
     uthread_yield();
 }
 
@@ -184,6 +205,7 @@ void stub(void *(*start_routine)(void *), void *arg)
         // TODO
     
     enableInterrupts(); // makes sure that we are enabling interrupts before entering user code.
+    startInterruptTimer(); // Start timer before entering user code. For first run.
     void *return_value = (*start_routine)(arg);
     uthread_exit(return_value);
 }
@@ -194,6 +216,7 @@ int uthread_init(int quantum_usecs)
         // Setup timer interrupt and handler
         // Create a thread for the caller (main) thread
 
+    quantum = quantum_usecs;
     // registering the handler function for SIGVTALRM
     struct sigaction timer_signal;
     timer_signal.sa_handler = scheduler_function;
@@ -206,6 +229,7 @@ int uthread_init(int quantum_usecs)
         threadIdsAvailable.push_back(i);
     }
     TCB *t0 = new TCB(0, State::RUNNING);
+    t0->increaseQuantum(quantum_usecs);
     runningThread = t0;
     idToTcb.insert(pair<int, TCB*>(0, t0));
 
@@ -218,12 +242,15 @@ int uthread_init(int quantum_usecs)
 int uthread_create(void* (*start_routine)(void*), void* arg)
 {
         // Create a new thread and add it to the ready queue
+	disableInterrupts();
         int tid = threadIdsAvailable.front();
         threadIdsAvailable.pop_front();
 
         TCB *tcb = new TCB(tid, start_routine, arg, State::READY);
+	tcb->increaseQuantum(quantum);
         idToTcb.insert(pair<int, TCB*>(tid, tcb));
         addToQueue(ready_queue, tcb);
+	enableInterrupts();
 	return tid;
 }
 
@@ -232,7 +259,25 @@ int uthread_join(int tid, void **retval)
         // If the thread specified by tid is already terminated, just return
         // If the thread specified by tid is still running, block until it terminates
         // Set *retval to be the result of thread if retval != nullptr
+    void *result;
+    finished_queue_entry* finished_entry = isPresentInFinishedQueue(tid);
+    while (finished_entry == NULL) {
+        uthread_yield();
+        finished_entry = isPresentInFinishedQueue(tid);
+    }
 
+    // If it reached here it means that the thread tid has finished.
+    disableInterrupts();
+    *retval = finished_entry->result;
+    //cout << "Removing from finished queue" << endl;
+    removeFromFinishedQueue(tid, finished_queue);
+    //cout << "Removing from from queue" << endl;
+    removeFromQueue(tid, ready_queue);
+    // delete finished_entry->tcb;
+    // delete finished_entry;
+    threadIdsAvailable.push_back(tid);
+    enableInterrupts();
+    return 1;
 }
 
 int uthread_yield(void)

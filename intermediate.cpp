@@ -16,11 +16,12 @@ void *worker(void *arg) {
     cout<<"Starting thread : "<<my_tid<<endl;
     for (int i = args.start; i <= args.end; i++) {
         cout<<"Thread : "<<my_tid<<" : "<<i<<endl;
-	usleep(1);
-        //if (i % args.yeild_mod == 0) {
+	for (int j = 0; j < 1000000; j++);
+	// usleep(5);
+        // if (i % args.yeild_mod == 0) {
             //uthread_yield();
 	    //cout<<"Current thread : "<<my_tid<<endl;
-        //}
+        // }
     }
     return NULL;
 }
@@ -45,9 +46,12 @@ int main(int argc, char *argv[]) {
     threads[2] = uthread_create(worker, &args2);
 
     cout<<"Threads Created\n";
-    while(uthread_yield()){
-        cout<<"In main thread"<<endl;
+    for (int i = 0; i < 3; i++){
+        uthread_join(threads[i], NULL);
     }
+    //while(uthread_yield()){
+        //cout<<"In main thread"<<endl;
+    //}
     cout<<"Exiting"<<endl;
     delete[] threads;
 

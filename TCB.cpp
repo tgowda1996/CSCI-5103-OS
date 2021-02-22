@@ -12,7 +12,7 @@ TCB::TCB(int tid, void *(*start_routine)(void* arg), void *arg, State state)
     _context.uc_stack.ss_flags = 0;
 
     // Set up the context to run f as the top-level thread function
-    makecontext(&_context, (void(*)())stub, 2, start_routine, arg); // mostly wont work this way.
+    makecontext(&_context, (void(*)())stub, 2, start_routine, arg);
 }
 
 TCB::TCB(int tid, State state)
@@ -41,8 +41,9 @@ int TCB::getId() const
 	return this->_tid;
 }
 
-void TCB::increaseQuantum()
+void TCB::increaseQuantum(int delta)
 {
+	_quantum += delta;
 }
 
 int TCB::getQuantum() const
