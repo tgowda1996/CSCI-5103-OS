@@ -139,6 +139,21 @@ int removeFromFinishedQueue(int tid, deque<finished_queue_entry*>& queueToModify
         return -1;
 }
 
+int removeFromJoinQueue(join_queue_entry_t *entry)
+{
+        for (deque<join_queue_entry_t*>::iterator iter = join_queue.begin(); iter != join_queue.end(); ++iter)
+        {
+                if (entry->tcb->getId() == (*iter)->tcb->getId())
+                {
+                        join_queue.erase(iter);
+                        return 0;
+                }
+        }
+
+        // Thread not found
+        return -1;
+}
+
 static finished_queue_entry* isPresentInFinishedQueue(int tid) {
         for (deque<finished_queue_entry_t*>::iterator iter = finished_queue.begin(); iter != finished_queue.end(); ++iter)
         {
@@ -152,17 +167,17 @@ static finished_queue_entry* isPresentInFinishedQueue(int tid) {
         return NULL;
 }
 
-static int isPresentInBlockedQueue(int tid) {
-        for (deque<TCB*>::iterator iter = block_queue.begin(); iter != block_queue.end(); ++iter)
+static join_queue_entry_t* getThreadWaitingOn(int tid) {
+        for (deque<join_queue_entry_t*>::iterator iter = join_queue.begin(); iter != join_queue.end(); ++iter)
         {
-                if (tid == (*iter)->getId())
+                if (tid == (*iter)->waiting_for_tid)
                 {
-                        return 1;
+                        return (*iter);
                 }
         }
 
         // Thread not found
-        return 0;
+        return NULL;
 }
 
 // Helper functions ------------------------------------------------------------
@@ -280,8 +295,15 @@ int uthread_join(int tid, void **retval)
         // Set *retval to be the result of thread if retval != nullptr
     void *result;
     finished_queue_entry* finished_entry = isPresentInFinishedQueue(tid);
-    while (finished_entry == NULL) {
+    if (finished_entry == NULL) {
+	disableInterrupts();
+	runningThread->setState(State::BLOCK);
+	join_queue_entry_t jqe = {runningThread, tid};
+	join_queue.push_back(&jqe);
+	// since in running thread, we dont need to edit the ready queue as we are changing the state.
+	enableInterrupts();
         uthread_yield();
+	// will reach here when tid is in finished queue
         finished_entry = isPresentInFinishedQueue(tid);
     }
 
@@ -319,6 +341,12 @@ void uthread_exit(void *retval)
     finished_queue_entry_t entry = {runningThread, retval};
     finished_queue.push_back(&entry); // search how to implement generic queues templates interface kind
     runningThread->setState(State::BLOCK);
+    join_queue_entry_t *threadWaitingOnCurrent = getThreadWaitingOn(runningThread->getId());
+    if (threadWaitingOnCurrent != NULL){
+    	threadWaitingOnCurrent->tcb->setState(State::READY);
+	addToQueue(ready_queue, threadWaitingOnCurrent->tcb);
+	removeFromJoinQueue(threadWaitingOnCurrent);
+    }
     enableInterrupts();
     uthread_yield(); // calling yield as it is in block state and needs to give up processor
 }

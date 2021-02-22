@@ -52,7 +52,6 @@ int main(int argc, char *argv[]) {
     cout<<"Threads Created\n";
     for (int i = 0; i < 3; i++){
 	cout << "Joining on - " << threads[i] << "\n";
-	cout << "i - " << i <<"\n";
         uthread_join(threads[i], (void **)&result);
 	if (i == 1) {
 		cout<<"Calling uthread resume\n";
