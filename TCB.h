@@ -64,7 +64,7 @@ public:
 	/**
 	 * function to increase the quantum of the thread
 	 */
-	void increaseQuantum();
+	void increaseQuantum(int delta);
 	
 	/**
 	 * function that get the quantum of the thread
@@ -72,16 +72,6 @@ public:
 	 */
 	 int getQuantum() const;
 
-	/**
-	 * function that saves the thread's context
-         * @return zero on success, -1 on failure
-	 */
-	int saveContext();
-
-	/**
-	 * function that loads the thread's previously saved context
-	 */
-	void loadContext();
 
 private:
 	int _tid;               // The thread id number.
