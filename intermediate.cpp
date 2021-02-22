@@ -13,6 +13,9 @@ typedef struct arguments_for_worker {
 void *worker(void *arg) {
     int my_tid = uthread_self();
     arguments_for_worker args = *(arguments_for_worker*)arg;
+    if (my_tid == 101){
+	    uthread_suspend(102);
+    }
     cout<<"Starting thread : "<<my_tid<<endl;
     for (int i = args.start; i <= args.end; i++) {
         cout<<"Thread : "<<my_tid<<" : "<<i<<endl;
@@ -28,11 +31,12 @@ void *worker(void *arg) {
 
 int main(int argc, char *argv[]) {
     // Default to 1 ms time quantum
-    int quantum_usecs = 10;
+    int quantum_usecs = 10000;
 
     int *threads = new int[3];
     // Init user thread library
     int ret = uthread_init(quantum_usecs);
+    unsigned long *result;
     if (ret != 0) {
         cerr << "uthread_init FAIL!\n" << endl;
         exit(1);
@@ -47,7 +51,13 @@ int main(int argc, char *argv[]) {
 
     cout<<"Threads Created\n";
     for (int i = 0; i < 3; i++){
-        uthread_join(threads[i], NULL);
+	cout << "Joining on - " << threads[i] << "\n";
+	cout << "i - " << i <<"\n";
+        uthread_join(threads[i], (void **)&result);
+	if (i == 1) {
+		cout<<"Calling uthread resume\n";
+		uthread_resume(102);
+	}
     }
     //while(uthread_yield()){
         //cout<<"In main thread"<<endl;

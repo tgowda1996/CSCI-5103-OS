@@ -19,7 +19,7 @@ TCB::TCB(int tid, State state)
 {
 	this->_tid = tid;
 	this->_state = state;
-    getcontext(&_context);
+        //getcontext(&_context);
 }
 
 TCB::~TCB()

@@ -6,7 +6,6 @@ using namespace std;
 void *worker(void *arg) {
     int my_tid = uthread_self();
     int points_per_thread = *(int*)arg;
-
     unsigned long local_cnt = 0;
     unsigned int rand_state = rand();
     for (int i = 0; i < points_per_thread; i++) {
@@ -19,13 +18,13 @@ void *worker(void *arg) {
     // NOTE: Parent thread must deallocate
     unsigned long *return_buffer = new unsigned long;
     *return_buffer = local_cnt;
-    cout << "Returning the value - " << local_cnt << "from thread - " << my_tid << "\n";
+    cout << "Returning the value - " << local_cnt << " from thread - " << my_tid << "\n";
     return return_buffer;
 }
 
 int main(int argc, char *argv[]) {
     // Default to 1 ms time quantum
-    int quantum_usecs = 1000;
+    int quantum_usecs = 100;
 
     if (argc < 3) {
         cerr << "Usage: ./pi <total points> <threads> [quantum_usecs]" << endl;
@@ -59,7 +58,6 @@ int main(int argc, char *argv[]) {
     unsigned long g_cnt = 0;
     for (int i = 0; i < thread_count; i++) {
         // Add thread result to global total
-	cout << "Joining\n" << endl;
         unsigned long *local_cnt;
         uthread_join(threads[i], (void**)&local_cnt);
         g_cnt += *local_cnt;
