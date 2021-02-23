@@ -212,14 +212,14 @@ static void switchThreads()
     }
     runningThread = nextThread;
     runningThread->setState(State::RUNNING); // Setting state before setting context
-    cout<<"Loading "<<nextThread->getId()<<endl;
+    //cout<<"Loading "<<nextThread->getId()<<endl;
     // nextThread->loadContext();
     setcontext(&(nextThread->_context));
 }
 
 static void scheduler_function(int signum) {
 	// TODO
-    cout<<"Timer interrupt - inside the thread - " << runningThread->getId() << endl;
+    //cout<<"Timer interrupt - inside the thread - " << runningThread->getId() << endl;
     uthread_yield();
 }
 
@@ -296,7 +296,7 @@ int uthread_join(int tid, void **retval)
     void *result;
     finished_queue_entry* finished_entry = isPresentInFinishedQueue(tid);
     if (finished_entry == NULL) {
-	cout<< "In Join. Thread " << tid << " hasnt finished executing yet. Moving " << runningThread->getId() << " to blocked state\n";
+	//cout<< "In Join. Thread " << tid << " hasnt finished executing yet. Moving " << runningThread->getId() << " to blocked state\n";
 	disableInterrupts();
 	runningThread->setState(State::BLOCK);
 	join_queue_entry_t jqe = {runningThread, tid};
@@ -308,7 +308,7 @@ int uthread_join(int tid, void **retval)
         finished_entry = isPresentInFinishedQueue(tid);
     }
     else {
-        cout<< "In join. Thread " << tid << " has finished executing. Wont block.\n";
+        //cout<< "In join. Thread " << tid << " has finished executing. Wont block.\n";
     }
 
     // If it reached here it means that the thread tid has finished.
@@ -347,10 +347,10 @@ void uthread_exit(void *retval)
     finished_queue_entry_t entry = {runningThread, retval};
     finished_queue.push_back(&entry); // search how to implement generic queues templates interface kind
     runningThread->setState(State::BLOCK);
-    cout<<"Thread "<<runningThread->getId()<<" has completed and moving it to block state\n";
+    //cout<<"Thread "<<runningThread->getId()<<" has completed and moving it to block state\n";
     join_queue_entry_t *threadWaitingOnCurrent = getThreadWaitingOn(runningThread->getId());
     if (threadWaitingOnCurrent != NULL){
-	cout<<"Changing thread "<<threadWaitingOnCurrent->tcb->getId()<<"'s state to READY and moving it to ready_queue\n";
+	//cout<<"Changing thread "<<threadWaitingOnCurrent->tcb->getId()<<"'s state to READY and moving it to ready_queue\n";
     	threadWaitingOnCurrent->tcb->setState(State::READY);
 	addToQueue(ready_queue, threadWaitingOnCurrent->tcb);
 	removeFromJoinQueue(threadWaitingOnCurrent);
@@ -365,10 +365,10 @@ int uthread_suspend(int tid)
         // in to the block queue
     
     //check if tid is valid and is currently running. And it should not be in finished queue
-    cout<<"suspending " << tid << " called by " << runningThread->getId() << endl;
+    //cout<<"suspending " << tid << " called by " << runningThread->getId() << endl;
     if (idToTcb.find(tid) == idToTcb.end() || isPresentInFinishedQueue(tid) != NULL) {
 	    return -1;
-	    cout << "Returning -1 as some issue" << endl;
+	    //cout << "Returning -1 as some issue" << endl;
     }
     TCB* tcbToBeSuspended = idToTcb[tid];
     disableInterrupts();
@@ -377,7 +377,7 @@ int uthread_suspend(int tid)
     tcbToBeSuspended->setState(State::BLOCK); 
     removeFromQueue(tid, ready_queue);
     if (wasRunning){
-	    cout << "Thread to be suspended is currently running";
+	    //cout << "Thread to be suspended is currently running";
 	    enableInterrupts();
 	    uthread_yield();
 	    return 1;
@@ -388,7 +388,7 @@ int uthread_suspend(int tid)
 
 int uthread_resume(int tid)
 {
-    cout << "Resuming thread " << tid << "\n";
+    //cout << "Resuming thread " << tid << "\n";
         // Move the thread specified by tid back to the ready queue
     if (idToTcb.find(tid) == idToTcb.end()) {
 	    return -1;
@@ -397,7 +397,7 @@ int uthread_resume(int tid)
     if (tcbToBeResumed->getState() != State::BLOCK) {
 	    return -1;
     }
-    cout << "Validation passed\n";
+    //cout << "Validation passed\n";
     disableInterrupts();
     //removeFromQueue(tid, block_queue);
     tcbToBeResumed->setState(State::READY);
