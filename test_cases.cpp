@@ -10,13 +10,17 @@ typedef struct arguments_for_worker {
     int yeild_mod;
 } arguments_for_worker;
 
+typedef struct metadata_tester_args {
+    int tid;
+    int quantum;
+} metadata_tester_args;
+
 void *worker1(void *arg) {
     int my_tid = uthread_self();
     arguments_for_worker args = *(arguments_for_worker*)arg;
     cout<<"Starting thread : "<<my_tid<<endl;
     for (int i = args.start; i <= args.end; i++) {
         cout<<"Thread : "<<my_tid<<" : "<<i<<endl;
-	//for (int j = 0; j < 1000000; j++);
         if ((i-args.start+1) % args.yeild_mod == 0) {
             uthread_yield();
 	    cout<<"Current thread : "<<my_tid<<endl;
@@ -28,28 +32,33 @@ void *worker1(void *arg) {
 void *worker2(void *arg) {
     int my_tid = uthread_self();
     arguments_for_worker args = *(arguments_for_worker*)arg;
-    if (my_tid == 101){
-	    uthread_suspend(102);
-    }
     cout<<"Starting thread : "<<my_tid<<endl;
     for (int i = args.start; i <= args.end; i++) {
         cout<<"Thread : "<<my_tid<<" : "<<i<<endl;
-	for (int j = 0; j < 1000000; j++);
-	// usleep(5);
-        // if (i % args.yeild_mod == 0) {
-            //uthread_yield();
-	    //cout<<"Current thread : "<<my_tid<<endl;
-        // }
+	for (long j = 0; j < 5000000; j++);
     }
+    cout << " Finished running thread : " << my_tid << endl;
+    return NULL;
+}
+
+void *worker3(void *arg) {
+    int my_tid = uthread_self();
+    metadata_tester_args args = *(metadata_tester_args*)arg;
+    cout << "Thread " << my_tid << " uthread self and tid from the main thread are equal? " << (my_tid==args.tid ? "True\n" : "False\n");
+    cout << "Thread " << my_tid << " uthread get quantums and quantum from the main thread are equal? " <<(uthread_get_quantums(my_tid)==args.quantum ? "True\n" : "False\n");
     return NULL;
 }
 
 void test_yield_and_scheduler();
 void test_join_based_main();
+void test_timer_based_preemption();
+void test_self_and_quantum_apis();
 
 int main(int argc, char *argv[]){
-    test_yield_and_scheduler();
+    // test_yield_and_scheduler();
     // test_join_based_main();
+    // test_timer_based_preemption();
+    test_self_and_quantum_apis();
     return 0;
 }
 
@@ -107,6 +116,67 @@ void test_join_based_main() {
 
     cout<<"Threads Created\n";
     for (int i = 0; i < 3; i++) {
+	    cout << "Joining on - " << threads[i] << "\n";
+	    uthread_join(threads[i], NULL);
+    }
+
+    cout<<"Exiting"<<endl;
+    delete[] threads;
+}
+
+
+void test_timer_based_preemption() {
+    // Default to 1 ms time quantum
+    int quantum_usecs = 100; // keeping quantum_usecs large enough to let the code only work based on yield
+
+    int *threads = new int[3];
+    // Init user thread library
+    int ret = uthread_init(quantum_usecs);
+    unsigned long *result;
+    if (ret != 0) {
+        cerr << "uthread_init FAIL!\n" << endl;
+        exit(1);
+    }
+    
+    arguments_for_worker args = {1,3,2};
+    threads[0] = uthread_create(worker2, &args);
+    arguments_for_worker args1 = {11,15,3};
+    threads[1] = uthread_create(worker2, &args1);
+    arguments_for_worker args2 = {21,25,4};
+    threads[2] = uthread_create(worker2, &args2);
+
+    cout<<"Threads Created\n";
+    for (int i = 0; i < 3; i++) {
+	    cout << "Joining on - " << threads[i] << "\n";
+	    uthread_join(threads[i], NULL);
+    }
+
+    cout<<"Exiting"<<endl;
+    delete[] threads;
+}
+
+void test_self_and_quantum_apis() {
+    // Default to 1 ms time quantum
+    int quantum_usecs = 100; // keeping quantum_usecs large enough to let the code only work based on yield
+
+    int *threads = new int[3];
+    // Init user thread library
+    int ret = uthread_init(quantum_usecs);
+    unsigned long *result;
+    if (ret != 0) {
+        cerr << "uthread_init FAIL!\n" << endl;
+        exit(1);
+    }
+    
+    metadata_tester_args args = {0,quantum_usecs};
+    threads[0] = uthread_create(worker3, &args);
+    args.tid = threads[0];
+    metadata_tester_args args1 = {0,quantum_usecs};    
+    threads[1] = uthread_create(worker3, &args1);
+    args1.tid = threads[1];
+
+    cout<<"Threads Created\n";
+    for (int i = 0; i < 2; i++) {
 	    cout << "Joining on - " << threads[i] << "\n";
 	    uthread_join(threads[i], NULL);
     }
