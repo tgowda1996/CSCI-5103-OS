@@ -204,8 +204,10 @@ static void switchThreads()
         runningThread->setState(State::READY);
         addToQueue(ready_queue, runningThread);
     }
-
+    
+    //cout << "Size of ready queue before pop " << ready_queue.size() << " " << runningThread->getId() << "\n";
     TCB *nextThread = popFromQueue(ready_queue);
+    //cout<< "id - " << nextThread->getId() << "\n"; 
     while(isPresentInFinishedQueue(nextThread->getId()) != NULL) {
         removeFromQueue(nextThread->getId(), ready_queue); // dont want it to be in the ready queue again.
         nextThread = popFromQueue(ready_queue);
@@ -303,6 +305,7 @@ int uthread_join(int tid, void **retval)
 	join_queue.push_back(&jqe);
 	// since in running thread, we dont need to edit the ready queue as we are changing the state.
 	enableInterrupts();
+        //cout << "Size of ready queue " << ready_queue.size() << "\n";
         uthread_yield();
 	// will reach here when tid is in finished queue
         finished_entry = isPresentInFinishedQueue(tid);
@@ -372,7 +375,7 @@ int uthread_suspend(int tid)
     }
     TCB* tcbToBeSuspended = idToTcb[tid];
     disableInterrupts();
-    bool wasRunning = runningThread->getState() == State::RUNNING;
+    bool wasRunning = runningThread->getId() == tid;
     //addToQueue(block_queue, tcbToBeSuspended);
     tcbToBeSuspended->setState(State::BLOCK); 
     removeFromQueue(tid, ready_queue);
