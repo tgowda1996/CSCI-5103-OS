@@ -5,7 +5,6 @@
 #include <set>
 #include <map> 
 
-#define MAX_THREAD_LIMIT 100
 
 using namespace std;
 
