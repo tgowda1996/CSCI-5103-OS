@@ -1,5 +1,6 @@
 #include "uthread.h"
 #include <iostream>
+#include <iomanip>
 
 using namespace std;
 
@@ -18,13 +19,12 @@ void *worker(void *arg) {
     // NOTE: Parent thread must deallocate
     unsigned long *return_buffer = new unsigned long;
     *return_buffer = local_cnt;
-    cout << "Returning the value - " << local_cnt << " from thread - " << my_tid << "\n";
     return return_buffer;
 }
 
 int main(int argc, char *argv[]) {
     // Default to 1 ms time quantum
-    int quantum_usecs = 100;
+    int quantum_usecs = 50000000;
 
     if (argc < 3) {
         cerr << "Usage: ./pi <total points> <threads> [quantum_usecs]" << endl;
@@ -39,6 +39,8 @@ int main(int argc, char *argv[]) {
     int *threads = new int[thread_count];
     int points_per_thread = totalpoints / thread_count;
 
+    clock_t start, end;
+    start = clock();
     // Init user thread library
     int ret = uthread_init(quantum_usecs);
     if (ret != 0) {
@@ -65,6 +67,10 @@ int main(int argc, char *argv[]) {
         // Deallocate thread result
         delete local_cnt;
     }
+
+    end = clock();
+    double time_take = double(end-start)/double(CLOCKS_PER_SEC);
+    cout << fixed << time_take << setprecision(5) << endl;
 
     delete[] threads;
 

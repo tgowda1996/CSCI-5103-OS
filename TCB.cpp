@@ -43,7 +43,7 @@ int TCB::getId() const
 
 void TCB::increaseQuantum(int delta)
 {
-	_quantum += delta;
+	_quantum += delta; // using this function to set the quanta of a thread.
 }
 
 int TCB::getQuantum() const

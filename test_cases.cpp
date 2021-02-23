@@ -79,12 +79,18 @@ void test_suspend_by_same_thread_and_resume();
 
 
 int main(int argc, char *argv[]){
-    //test_yield_and_scheduler();
-    //test_join_based_main();
-    //test_timer_based_preemption();
-    //test_self_and_quantum_apis();
-    //test_suspend_by_different_thread_and_resume();
-    test_suspend_by_same_thread_and_resume();
+    if (argc < 2) {
+	    cerr << "Usage: ./uthread_demo <test_case_number>" << endl;
+	    exit(1);
+    }
+    int tn = atoi(argv[1]);
+    if (tn == 1) test_yield_and_scheduler();
+    else if (tn == 2) test_join_based_main();
+    else if (tn == 3) test_timer_based_preemption();
+    else if (tn == 4) test_self_and_quantum_apis();
+    else if (tn == 5) test_suspend_by_different_thread_and_resume();
+    else if (tn == 6) test_suspend_by_same_thread_and_resume();
+    else cout <<"Wrong test case number\n";
     return 0;
 }
 
