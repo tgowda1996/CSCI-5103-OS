@@ -5,7 +5,6 @@
 #include <set>
 #include <map> 
 
-#define MAX_THREAD_LIMIT 100
 
 using namespace std;
 
@@ -50,8 +49,6 @@ static TCB *runningThread;
 // Start a countdown timer to fire an interrupt
 static void startInterruptTimer()
 {
-	// TODO implement the scheduler function.
-	
    // setting up timer
    struct itimerval it_val;
    it_val.it_value.tv_sec = 0;
@@ -64,8 +61,6 @@ static void startInterruptTimer()
 // Block signals from firing timer interrupt
 static void disableInterrupts()
 {
-        // TODO
-    //cout << "Disabling Interrupts\n";
     sigset_t block_virtual_alarm;
     sigemptyset(&block_virtual_alarm);
     sigaddset(&block_virtual_alarm, SIGVTALRM);
@@ -76,8 +71,6 @@ static void disableInterrupts()
 // Unblock signals to re-enable timer interrupt
 static void enableInterrupts()
 {
-        // TODO
-    //cout << "Enabling Interrupts\n";
     sigset_t unblock_virtual_alarm;
     sigemptyset(&unblock_virtual_alarm);
     sigaddset(&unblock_virtual_alarm, SIGVTALRM);
@@ -185,14 +178,10 @@ static join_queue_entry_t* getThreadWaitingOn(int tid) {
 // Switch to the next ready thread
 static void switchThreads()
 {
-        // TODO
     volatile int flag = 0;
-    // runningThread->saveContext();
     getcontext(&(runningThread->_context));
-    //cout << "SWITCH" << endl; //: currentThread =  << runningThread->getId() <<  << flag << endl;
 
     if (flag == 1) {
-	// cout << "flag check for - " << runningThread->getId()<<endl; 
 	startInterruptTimer();
 	enableInterrupts();
 	return;
@@ -205,23 +194,17 @@ static void switchThreads()
         addToQueue(ready_queue, runningThread);
     }
     
-    //cout << "Size of ready queue before pop " << ready_queue.size() << " " << runningThread->getId() << "\n";
     TCB *nextThread = popFromQueue(ready_queue);
-    //cout<< "id - " << nextThread->getId() << "\n"; 
     while(isPresentInFinishedQueue(nextThread->getId()) != NULL) {
         removeFromQueue(nextThread->getId(), ready_queue); // dont want it to be in the ready queue again.
         nextThread = popFromQueue(ready_queue);
     }
     runningThread = nextThread;
     runningThread->setState(State::RUNNING); // Setting state before setting context
-    //cout<<"Loading "<<nextThread->getId()<<endl;
-    // nextThread->loadContext();
     setcontext(&(nextThread->_context));
 }
 
 static void scheduler_function(int signum) {
-	// TODO
-    //cout<<"Timer interrupt - inside the thread - " << runningThread->getId() << endl;
     uthread_yield();
 }
 
@@ -234,8 +217,6 @@ static void scheduler_function(int signum) {
 // Starting point for thread. Calls top-level thread function
 void stub(void *(*start_routine)(void *), void *arg)
 {
-        // TODO
-    
     enableInterrupts(); // makes sure that we are enabling interrupts before entering user code.
     startInterruptTimer(); // Start timer before entering user code. For first run.
     void *return_value = (*start_routine)(arg);
@@ -257,7 +238,7 @@ int uthread_init(int quantum_usecs)
     
     sigaction(SIGVTALRM, &timer_signal, NULL);
 
-    for (int i = 100; i < 100 + MAX_THREAD_LIMIT; i++) {
+    for (int i = 100; i < 100 + MAX_THREAD_NUM; i++) {
         threadIdsAvailable.push_back(i);
     }
     TCB *t0 = new TCB(0, State::RUNNING);
@@ -298,20 +279,15 @@ int uthread_join(int tid, void **retval)
     void *result;
     finished_queue_entry* finished_entry = isPresentInFinishedQueue(tid);
     if (finished_entry == NULL) {
-	//cout<< "In Join. Thread " << tid << " hasnt finished executing yet. Moving " << runningThread->getId() << " to blocked state\n";
 	disableInterrupts();
 	runningThread->setState(State::BLOCK);
 	join_queue_entry_t jqe = {runningThread, tid};
 	join_queue.push_back(&jqe);
 	// since in running thread, we dont need to edit the ready queue as we are changing the state.
 	enableInterrupts();
-        //cout << "Size of ready queue " << ready_queue.size() << "\n";
         uthread_yield();
 	// will reach here when tid is in finished queue
         finished_entry = isPresentInFinishedQueue(tid);
-    }
-    else {
-        //cout<< "In join. Thread " << tid << " has finished executing. Wont block.\n";
     }
 
     // If it reached here it means that the thread tid has finished.
@@ -321,8 +297,6 @@ int uthread_join(int tid, void **retval)
     }
     removeFromFinishedQueue(tid, finished_queue);
     removeFromQueue(tid, ready_queue);
-    // delete finished_entry->tcb;
-    // delete finished_entry;
     idToTcb.erase(tid);
     threadIdsAvailable.push_back(tid);
     enableInterrupts();
@@ -331,12 +305,9 @@ int uthread_join(int tid, void **retval)
 
 int uthread_yield(void)
 {
-        // TODO
-    //cout<<"yeid for - "<<runningThread->getId()<<"\n";
     switchThreads();
     if (ready_queue.size() == 0) return 0; // will happen when main is the only thread remaining
     else return 1;
-    // return 1; // this needs to be checked.
 }
 
 void uthread_exit(void *retval)
@@ -345,15 +316,12 @@ void uthread_exit(void *retval)
         // Move any threads joined on this thread back to the ready queue
         // Move this thread to the finished queue
 
-        // Intermediate implementation
     disableInterrupts();
     finished_queue_entry_t entry = {runningThread, retval};
     finished_queue.push_back(&entry); // search how to implement generic queues templates interface kind
     runningThread->setState(State::BLOCK);
-    //cout<<"Thread "<<runningThread->getId()<<" has completed and moving it to block state\n";
     join_queue_entry_t *threadWaitingOnCurrent = getThreadWaitingOn(runningThread->getId());
     if (threadWaitingOnCurrent != NULL){
-	//cout<<"Changing thread "<<threadWaitingOnCurrent->tcb->getId()<<"'s state to READY and moving it to ready_queue\n";
     	threadWaitingOnCurrent->tcb->setState(State::READY);
 	addToQueue(ready_queue, threadWaitingOnCurrent->tcb);
 	removeFromJoinQueue(threadWaitingOnCurrent);
@@ -368,10 +336,8 @@ int uthread_suspend(int tid)
         // in to the block queue
     
     //check if tid is valid and is currently running. And it should not be in finished queue
-    //cout<<"suspending " << tid << " called by " << runningThread->getId() << endl;
     if (idToTcb.find(tid) == idToTcb.end() || isPresentInFinishedQueue(tid) != NULL) {
 	    return -1;
-	    //cout << "Returning -1 as some issue" << endl;
     }
     TCB* tcbToBeSuspended = idToTcb[tid];
     disableInterrupts();
@@ -380,7 +346,6 @@ int uthread_suspend(int tid)
     tcbToBeSuspended->setState(State::BLOCK); 
     removeFromQueue(tid, ready_queue);
     if (wasRunning){
-	    //cout << "Thread to be suspended is currently running";
 	    enableInterrupts();
 	    uthread_yield();
 	    return 1;
@@ -391,7 +356,6 @@ int uthread_suspend(int tid)
 
 int uthread_resume(int tid)
 {
-    //cout << "Resuming thread " << tid << "\n";
         // Move the thread specified by tid back to the ready queue
     if (idToTcb.find(tid) == idToTcb.end()) {
 	    return -1;
@@ -400,9 +364,7 @@ int uthread_resume(int tid)
     if (tcbToBeResumed->getState() != State::BLOCK) {
 	    return -1;
     }
-    //cout << "Validation passed\n";
     disableInterrupts();
-    //removeFromQueue(tid, block_queue);
     tcbToBeResumed->setState(State::READY);
     addToQueue(ready_queue, tcbToBeResumed);
     enableInterrupts();
@@ -411,19 +373,16 @@ int uthread_resume(int tid)
 
 int uthread_self()
 {
-        // TODO
 	return runningThread->getId();
 }
 
 int uthread_get_total_quantums()
 {
-        // TODO
     return idToTcb.size()*quantum;
     
 }
 
 int uthread_get_quantums(int tid)
 {
-        // TODO
     return idToTcb[tid]->getQuantum();
 }
