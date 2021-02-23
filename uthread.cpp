@@ -296,7 +296,7 @@ int uthread_join(int tid, void **retval)
     void *result;
     finished_queue_entry* finished_entry = isPresentInFinishedQueue(tid);
     if (finished_entry == NULL) {
-	cout<< "Thread " << tid << " hasnt finished executing yet. Moving " << runningThread->getId() << " to blocked state\n";
+	cout<< "In Join. Thread " << tid << " hasnt finished executing yet. Moving " << runningThread->getId() << " to blocked state\n";
 	disableInterrupts();
 	runningThread->setState(State::BLOCK);
 	join_queue_entry_t jqe = {runningThread, tid};
@@ -306,6 +306,9 @@ int uthread_join(int tid, void **retval)
         uthread_yield();
 	// will reach here when tid is in finished queue
         finished_entry = isPresentInFinishedQueue(tid);
+    }
+    else {
+        cout<< "In join. Thread " << tid << " has finished executing. Wont block.\n";
     }
 
     // If it reached here it means that the thread tid has finished.
