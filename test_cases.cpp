@@ -45,9 +45,11 @@ void *worker2(void *arg) {
 }
 
 void test_yield_and_scheduler();
+void test_join_based_main();
 
 int main(int argc, char *argv[]){
     test_yield_and_scheduler();
+    // test_join_based_main();
     return 0;
 }
 
@@ -79,6 +81,36 @@ void test_yield_and_scheduler() {
     for (int i = 0; i < 3; i ++) {
         uthread_join(threads[i], NULL);
     }
+    cout<<"Exiting"<<endl;
+    delete[] threads;
+}
+
+void test_join_based_main() {
+    // Default to 1 ms time quantum
+    int quantum_usecs = 10000; // keeping quantum_usecs large enough to let the code only work based on yield
+
+    int *threads = new int[3];
+    // Init user thread library
+    int ret = uthread_init(quantum_usecs);
+    unsigned long *result;
+    if (ret != 0) {
+        cerr << "uthread_init FAIL!\n" << endl;
+        exit(1);
+    }
+    
+    arguments_for_worker args = {1,1,2};
+    threads[0] = uthread_create(worker1, &args);
+    arguments_for_worker args1 = {11,15,3};
+    threads[1] = uthread_create(worker1, &args1);
+    arguments_for_worker args2 = {21,25,4};
+    threads[2] = uthread_create(worker1, &args2);
+
+    cout<<"Threads Created\n";
+    for (int i = 0; i < 3; i++) {
+	    cout << "Joining on - " << threads[i] << "\n";
+	    uthread_join(threads[i], NULL);
+    }
+
     cout<<"Exiting"<<endl;
     delete[] threads;
 }
