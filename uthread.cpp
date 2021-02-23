@@ -189,10 +189,10 @@ static void switchThreads()
     volatile int flag = 0;
     // runningThread->saveContext();
     getcontext(&(runningThread->_context));
-    cout << "SWITCH" << endl; //: currentThread =  << runningThread->getId() <<  << flag << endl;
+    //cout << "SWITCH" << endl; //: currentThread =  << runningThread->getId() <<  << flag << endl;
 
     if (flag == 1) {
-	cout << "flag check for - " << runningThread->getId()<<endl; 
+	// cout << "flag check for - " << runningThread->getId()<<endl; 
 	startInterruptTimer();
 	enableInterrupts();
 	return;
@@ -296,6 +296,7 @@ int uthread_join(int tid, void **retval)
     void *result;
     finished_queue_entry* finished_entry = isPresentInFinishedQueue(tid);
     if (finished_entry == NULL) {
+	cout<< "Thread " << tid << " hasnt finished executing yet. Moving " << runningThread->getId() << " to blocked state\n";
 	disableInterrupts();
 	runningThread->setState(State::BLOCK);
 	join_queue_entry_t jqe = {runningThread, tid};
@@ -309,7 +310,9 @@ int uthread_join(int tid, void **retval)
 
     // If it reached here it means that the thread tid has finished.
     disableInterrupts();
-    *retval = finished_entry->result;
+    if (retval != NULL) {
+        *retval = finished_entry->result;
+    }
     removeFromFinishedQueue(tid, finished_queue);
     removeFromQueue(tid, ready_queue);
     // delete finished_entry->tcb;
@@ -323,7 +326,7 @@ int uthread_join(int tid, void **retval)
 int uthread_yield(void)
 {
         // TODO
-    cout<<"yeid for - "<<runningThread->getId()<<"\n";
+    //cout<<"yeid for - "<<runningThread->getId()<<"\n";
     switchThreads();
     if (ready_queue.size() == 0) return 0; // will happen when main is the only thread remaining
     else return 1;
@@ -341,8 +344,10 @@ void uthread_exit(void *retval)
     finished_queue_entry_t entry = {runningThread, retval};
     finished_queue.push_back(&entry); // search how to implement generic queues templates interface kind
     runningThread->setState(State::BLOCK);
+    cout<<"Thread "<<runningThread->getId()<<" has completed and moving it to block state\n";
     join_queue_entry_t *threadWaitingOnCurrent = getThreadWaitingOn(runningThread->getId());
     if (threadWaitingOnCurrent != NULL){
+	cout<<"Changing thread "<<threadWaitingOnCurrent->tcb->getId()<<"'s state to READY and moving it to ready_queue\n";
     	threadWaitingOnCurrent->tcb->setState(State::READY);
 	addToQueue(ready_queue, threadWaitingOnCurrent->tcb);
 	removeFromJoinQueue(threadWaitingOnCurrent);
