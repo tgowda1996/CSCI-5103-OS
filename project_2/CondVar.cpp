@@ -10,20 +10,13 @@ CondVar::CondVar(){
 
 void CondVar::wait(Lock &lock) {
     disableInterrupts();
-    // cout << "Inside condition variable\n";
     cond_var_waiting_queue.push_back(running);
     running->setState(BLOCK);
-    // assert(nextThreadToWakeUp == NULL);
     lock._unlock();
-    // cout<<"thread " << running->getId() << " waiting on condition variable\n"; 
     switchThreads();
-    // lock is still set to busy
     running->setState(RUNNING);
-    // assert(wake_up_order.empty() == false);
-//    if (!wake_up_order.empty()) { // should not be empty. add assert
     lock._signal(wake_up_order.front());
     wake_up_order.pop_front();
-//    }
     enableInterrupts();
 }
 
