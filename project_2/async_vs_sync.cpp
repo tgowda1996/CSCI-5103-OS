@@ -2,16 +2,23 @@
 #include "async_io.h"
 #include <iostream>
 #include <chrono>
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<fcntl.h>
+#include<unistd.h>
 
 #define BUFFER_SIZE 1000
 
-void * worker_simulation_long_calculation() {
+using std::cout;
+using std::endl;
+
+void * worker_simulation_long_calculation(void* args) {
     int my_tid = uthread_self();
     cout<<"Starting thread : "<<my_tid<<endl;
     int a = 0;
     for (int i = 0; i < 10000; i++) {
         for (int j = 0; j < 10000; j++) {
-            for (int k = 0; k < 10000; k++);
+            for (int k = 0; k < 10; k++);
         }
     }
     return NULL;
@@ -20,18 +27,19 @@ void * worker_simulation_long_calculation() {
 // Will be reading the same file many times
 void * worker_sync_calls(void* args) {
     int my_tid = uthread_self();
-    char * file_name = (char *) args;
+    const char * file_name = "to_read";
     cout<<"Starting thread : "<<my_tid<<endl;
     int a = 0;
 
     char* buffer = new char[BUFFER_SIZE];
     int bytes_read = 1, offset = 0;
-    for (int i = 0; i < 10000; i++) {
+    for (int i = 0; i < 1000; i++) {
         int fd = open(file_name, O_RDONLY);
+	int wfd = open("sync_write", O_WRONLY|O_CREAT);
         while(bytes_read){
             bytes_read = read(fd, buffer, BUFFER_SIZE);
             if (bytes_read > 0) {
-                write(fd, buffer, BUFFER_SIZE);
+                write(wfd, buffer, BUFFER_SIZE);
             }
         }
         close(fd);
@@ -43,17 +51,18 @@ void * worker_sync_calls(void* args) {
 
 void * worker_async_calls(void* args) {
     int my_tid = uthread_self();
-    char * file_name = (char *) args;
+    const char * file_name = "to_read";
     cout<<"Starting thread : "<<my_tid<<endl;
     char* buffer = new char[BUFFER_SIZE];
     int bytes_read = 1, offset = 0;
-    for (int i = 0; i < 10000; i++) {
+    for (int i = 0; i < 1000; i++) {
         int fd = open(file_name, O_RDONLY);
+	int wfd = open("async_write", O_WRONLY|O_CREAT);
         while(bytes_read){
             bytes_read = async_read(fd, buffer, BUFFER_SIZE, offset);
             offset += bytes_read;
             if (bytes_read > 0) {
-                async_write(fd, buffer, BUFFER_SIZE, offset);
+                async_write(wfd, buffer, BUFFER_SIZE, offset);
             }
         }
         close(fd);
@@ -66,13 +75,16 @@ int main(){
     uthread_init(100);
     int threads[4];
     auto t0 = std::chrono::high_resolution_clock::now();
+    //const char* file_name = "to_read";
     threads[0] = uthread_create(worker_simulation_long_calculation, NULL);
     threads[1] = uthread_create(worker_simulation_long_calculation, NULL);
     threads[2] = uthread_create(worker_simulation_long_calculation, NULL);
     threads[3] = uthread_create(worker_sync_calls, NULL);
+    //threads[3] = uthread_create(worker_async_calls, NULL);
+
 
     cout<<"Threads Created\n";
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 4; i++) {
         cout << "Joining on - " << threads[i] << "\n";
         uthread_join(threads[i], NULL);
     }

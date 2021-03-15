@@ -2,13 +2,13 @@
 #include "uthread.h"
 #include <aio.h>
 #include <errno.h>
+#include <cstdio>
 
 // TODO
 
-static aiocb* getAioStructure(int fd, void *buf, size_t count, int offset);
-ssize_t getSsize(const aiocb *s, int ret);
+static aiocb* getAioStructure(int fd, size_t count, int offset);
+static ssize_t getSsize(aiocb *s, int ret);
 
-ssize_t getSsize(const aiocb *s, int ret);
 
 ssize_t async_read(int fd, void *buf, size_t count, int offset){
     aiocb* s = getAioStructure(fd, count, offset);
@@ -37,7 +37,7 @@ static aiocb* getAioStructure(int fd, size_t count, int offset){
     return s;
 }
 
-ssize_t getSsize(const aiocb *s, int ret) {
+static ssize_t getSsize(aiocb *s, int ret) {
     if (ret != 0) {
         perror("Error occurred while performing aio");
         return 0; //aio_read failed.
@@ -52,5 +52,5 @@ ssize_t getSsize(const aiocb *s, int ret) {
         return 0;
     }
 
-    return aio_return();
+    return aio_return(s);
 }

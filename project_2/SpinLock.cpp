@@ -3,10 +3,10 @@
 // TODO
 
 
-SpinLock::lock(){
+void SpinLock::lock(){
 	while(atomic_value.test_and_set());
 }
 
-SpinLock::unlock(){
+void SpinLock::unlock(){
 	atomic_value.clear();
 }
