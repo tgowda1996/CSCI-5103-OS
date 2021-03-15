@@ -7,18 +7,39 @@
 #include<fcntl.h>
 #include<unistd.h>
 
-#define BUFFER_SIZE 1000
 
 using std::cout;
 using std::endl;
 
+#define BUFFER_SIZE 4*1024*1024
+#define FIRST_LOOP 1000
+#define SECOND_LOOP 1000
+#define THIRD_LOOP 1000
+#define FILE_NAME "spam.csv"
+#define READ_WRITE_OPERATIONS 1
+#define TYPE SYNC
+#define SYNC 1
+#define ASYNC 2
+
+struct loop_args{
+	int i, j, k;
+};
+
+struct io_args {
+	const char* fn;
+};
+
+loop_args* getLoopArgs(int i, int j, int k);
+io_args* getIOArgs(const char * str);
+
 void * worker_simulation_long_calculation(void* args) {
     int my_tid = uthread_self();
+    loop_args* largs = (loop_args*)args;
     cout<<"Starting thread : "<<my_tid<<endl;
     int a = 0;
-    for (int i = 0; i < 10000; i++) {
-        for (int j = 0; j < 10000; j++) {
-            for (int k = 0; k < 10; k++);
+    for (int i = 0; i < largs->i; i++) {
+        for (int j = 0; j < largs->j; j++) {
+            for (int k = 0; k < largs->k; k++);
         }
     }
     return NULL;
@@ -27,13 +48,13 @@ void * worker_simulation_long_calculation(void* args) {
 // Will be reading the same file many times
 void * worker_sync_calls(void* args) {
     int my_tid = uthread_self();
-    const char * file_name = "to_read";
+    const char * file_name = ((io_args*)args)->fn;
     cout<<"Starting thread : "<<my_tid<<endl;
-    int a = 0;
 
     char* buffer = new char[BUFFER_SIZE];
     int bytes_read = 1, offset = 0;
-    for (int i = 0; i < 1000; i++) {
+    for (int i = 0; i < READ_WRITE_OPERATIONS; i++) {
+	bytes_read = 1;
         int fd = open(file_name, O_RDONLY);
 	int wfd = open("sync_write", O_WRONLY|O_CREAT);
         while(bytes_read){
@@ -51,11 +72,13 @@ void * worker_sync_calls(void* args) {
 
 void * worker_async_calls(void* args) {
     int my_tid = uthread_self();
-    const char * file_name = "to_read";
+    //const char * file_name = "spam.csv";
+    const char * file_name = ((io_args*)args)->fn;
     cout<<"Starting thread : "<<my_tid<<endl;
     char* buffer = new char[BUFFER_SIZE];
     int bytes_read = 1, offset = 0;
-    for (int i = 0; i < 1000; i++) {
+    for (int i = 0; i < READ_WRITE_OPERATIONS; i++) {
+	bytes_read = 1;
         int fd = open(file_name, O_RDONLY);
 	int wfd = open("async_write", O_WRONLY|O_CREAT);
         while(bytes_read){
@@ -76,11 +99,13 @@ int main(){
     int threads[4];
     auto t0 = std::chrono::high_resolution_clock::now();
     //const char* file_name = "to_read";
-    threads[0] = uthread_create(worker_simulation_long_calculation, NULL);
-    threads[1] = uthread_create(worker_simulation_long_calculation, NULL);
-    threads[2] = uthread_create(worker_simulation_long_calculation, NULL);
-    threads[3] = uthread_create(worker_sync_calls, NULL);
-    //threads[3] = uthread_create(worker_async_calls, NULL);
+    loop_args* largs = getLoopArgs(FIRST_LOOP, SECOND_LOOP, THIRD_LOOP);
+    io_args* ioargs = getIOArgs(FILE_NAME);
+    threads[0] = uthread_create(worker_simulation_long_calculation, (void *)largs);
+    threads[1] = uthread_create(worker_simulation_long_calculation, (void *)largs);
+    threads[2] = uthread_create(worker_simulation_long_calculation, (void *)largs);
+    if (TYPE == SYNC) threads[3] = uthread_create(worker_sync_calls, (void *)ioargs);
+    else if (TYPE == ASYNC) threads[3] = uthread_create(worker_async_calls, (void *)ioargs);
 
 
     cout<<"Threads Created\n";
@@ -92,5 +117,21 @@ int main(){
     std::chrono::duration<float> secs = t0-t1;
     std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(secs);
     std::cout << ms.count() << "ms\n";
+    delete largs;
+    delete ioargs;
     cout<<"Exiting"<<endl;
+}
+
+loop_args* getLoopArgs(int i, int j, int k){
+    loop_args* args = new loop_args;
+    args->i = i;
+    args->j = j;
+    args->k = k;
+    return args;
+}
+
+io_args* getIOArgs(const char * str){
+    io_args* args = new io_args;
+    args->fn = str;
+    return args;
 }
