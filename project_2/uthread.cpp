@@ -189,14 +189,17 @@ TCB* popReady()
 {
 	if (!ready[RED_Q].empty())
 	{
+		//cout<<"Returning from red\n";
 		return getReady(RED_Q);
 	}
 	if (!ready[ORANGE_Q].empty())
 	{
+	//	cout<<"returning from orange\n";
 		return getReady(ORANGE_Q);
 	}
 	if (!ready[GREEN_Q].empty())
 	{
+	//	cout<<"Returning from green\n";
 		return getReady(GREEN_Q);
 	}
 
@@ -438,6 +441,7 @@ int uthread_create(void* (*start_routine)(void*), void* arg)
 
 	int tid = getNextId();
 	Priority pr = ORANGE;
+	// cout<<"Setting thread proirity to "<<ORANGE<<"for thread "<<tid<<"\n;
 	TCB* th = new TCB(tid, pr, start_routine, arg, READY);
 	_threads.insert(pair<int, TCB*>(tid, th));
 
@@ -740,7 +744,7 @@ int uthread_increase_priority(int tid)
         disableInterrupts();
 
         _uthread_increase_priority(tcb);
-
+        //	cout<<"Setting " << tid << " to " << running->getPriority()<<endl;
         enableInterrupts();
 
         return SUCCESS;
@@ -774,11 +778,11 @@ int uthread_decrease_priority(int tid)
         }
 
         TCB *tcb = tcb_iter->second;
-
+	//cout<<"Thread "<< tid << " had priority of " << tcb->getPriority() <<endl;  
         disableInterrupts();
 
         _uthread_decrease_priority(tcb);
-
+//	cout<<"Setting " << tid << " to " << running->getPriority()<<endl;
         enableInterrupts();
 
         return SUCCESS;
