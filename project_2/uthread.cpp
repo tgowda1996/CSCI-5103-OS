@@ -7,7 +7,6 @@
 #include <map>
 #include <algorithm>
 #include <cassert>
-#include <pair>
 #include <unordered_set>
 #include <unordered_map>
 
@@ -45,7 +44,8 @@ TCB* running; // The "Running" thread.
 static vector<TCB*> blocked; // The "Blocked" vector, which represents a queue of threads.
 static vector<join_queue_entry_t> join_queue;
 static vector<finished_queue_entry_t> finished_queue;
-static unordered_map<int, TCB*> _threads; // All threads together
+static map<int, TCB*> _threads; // All threads together
+
 
 // data structures added for priority inversion
 static unordered_map<int, int> numBoosts;
@@ -515,23 +515,23 @@ static void boost_lp_lock_holding_threads(){
     // boosting 5% of medium
     numJobsToBoost = 1;
     if (medPriorityToBeBoosted.size() > 20) {
-        medPriorityToBeBoosted = medPriorityToBeBoosted.size() / 20;
+        numJobsToBoost = medPriorityToBeBoosted.size()/20;
     }
     boosting_logic(medPriorityToBeBoosted, numJobsToBoost);
 }
 
 
-static void boosting_logic(unordered_set<TCB*>, int>& boosting_info, int numJobsToBoost){
+static void boosting_logic(unordered_set<TCB*>& boosting_info, int numJobsToBoost){
     int count = 1;
     for (unordered_set<TCB*>::iterator iter = boosting_info.begin(); iter != boosting_info.end(); iter++) {
 //        if (numBoosts.find(iter->getId()) == numBoosts.end()) {
         if ((*iter)->getLockCount() == 0){
-            boosting_info.first.erase(iter);
+            boosting_info.erase(iter);
         }
         else {
             TCB* tcbToBeBoosted = (*iter);
             _uthread_increase_priority(tcbToBeBoosted);
-            boosting_info.first.erase(iter);
+            boosting_info.erase(iter);
             numBoosts[tcbToBeBoosted->getId()] = numBoosts[tcbToBeBoosted->getId()]+1;
 
             count++;
@@ -541,15 +541,13 @@ static void boosting_logic(unordered_set<TCB*>, int>& boosting_info, int numJobs
 }
 
 static void check_and_update_boost_structures(){
-
+    if (running->getPriority() == Priority::RED) return;
     if (running->getLockCount() > 0) {
         if (numBoosts.find(running->getId()) == numBoosts.end()) {
             numBoosts[running->getId()] = 0;
         }
         unordered_set<TCB*>& jobsToBeBoosted = getBoostingStructureForPriority(running->getPriority());
-        if (jobsToBeBoosted != NULL) {
-            jobsToBeBoosted.first.insert(running); // set will ignore duplicates.
-        }
+        jobsToBeBoosted.insert(running); // set will ignore duplicates.
     }
     else {
         // check and edit both the structures.
@@ -565,11 +563,9 @@ static void check_and_update_boost_structures(){
             }
         }
         unordered_set<TCB*>& jobsToBeBoosted = getBoostingStructureForPriority(running->getPriority());
-        if (jobsToBeBoosted != NULL) {
-            unordered_set<TCB*>::iterator iter = jobsToBeBoosted.find(running);
-            if (iter != jobsToBeBoosted.end()) {
-                jobsToBeBoosted.erase(jobsToBeBoosted);
-            }
+        unordered_set<TCB*>::iterator iter = jobsToBeBoosted.find(running);
+        if (iter != jobsToBeBoosted.end()) {
+            jobsToBeBoosted.erase(iter);
         }
 
     }
@@ -579,11 +575,10 @@ static unordered_set<TCB*>& getBoostingStructureForPriority(Priority p) {
     if (running->getPriority() == Priority::GREEN) {
         return lowPriorityToBeBoosted;
     }
-    else if (running->getPriority() == Priority::ORANGE) {
+    else { // will be orange as we removed red in the begenning
         return medPriorityToBeBoosted;
     }
 
-    return NULL;
 }
 
 /* Terminates this thread */
