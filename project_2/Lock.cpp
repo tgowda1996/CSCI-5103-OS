@@ -22,11 +22,13 @@ void Lock::lock(){
 	// cout<<"Lock is free. Acquiring lock\n";
         value = 1;
     }
+    running->increaseLockCount();
     enableInterrupts();
 }
 
 void Lock::unlock(){
     disableInterrupts();
+    running->decreaseLockCount();
     _unlock();
     enableInterrupts();
 }
