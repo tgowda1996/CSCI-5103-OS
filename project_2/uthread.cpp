@@ -66,6 +66,7 @@ static void boosting_logic(unordered_set<TCB*>& boosting_info, int numJobsToBoos
 static void boost_lp_lock_holding_threads();
 static void check_and_update_boost_structures();
 static unordered_set<TCB*>& getBoostingStructureForPriority(Priority p);
+static bool isHigherPriorityThreadPresent();
 
 /**
  * function responsable for printing each kind of error
@@ -530,7 +531,7 @@ static void boosting_logic(unordered_set<TCB*>& boosting_info, int numJobsToBoos
     for (unordered_set<TCB*>::iterator iter = boosting_info.begin(); iter != boosting_info.end(); iter++) {
 //        if (numBoosts.find(iter->getId()) == numBoosts.end()) {
         if ((*iter)->getLockCount() == 0){
-            boosting_info.erase(iter);
+            //boosting_info.erase(iter);
         }
         else {
             TCB* tcbToBeBoosted = (*iter);
@@ -545,9 +546,10 @@ static void boosting_logic(unordered_set<TCB*>& boosting_info, int numJobsToBoos
 }
 
 static void check_and_update_boost_structures(){
-    if (running->getPriority() == Priority::RED) return;
-    if (running->getLockCount() > 0) {
-        if (numBoosts.find(running->getId()) == numBoosts.end()) {
+    unordered_map<int, int>::iterator boostMap_iter = numBoosts.find(running->getId());
+    if (running->getPriority() == Priority::RED && boostMap_iter == numBoosts.end()) return; // true high priority thread
+    if (running->getLockCount() > 0 && isHigherPriorityThreadPresent()) { // do not do this if there are no higher priority threads
+        if (boostMap_iter == numBoosts.end()) {
             numBoosts[running->getId()] = 0;
         }
         unordered_set<TCB*>& jobsToBeBoosted = getBoostingStructureForPriority(running->getPriority());
@@ -555,7 +557,6 @@ static void check_and_update_boost_structures(){
     }
     else {
         // check and edit both the structures.
-        unordered_map<int, int>::iterator boostMap_iter = numBoosts.find(running->getId());
         if (boostMap_iter != numBoosts.end()) {
 //            _uthread_decrease_priority(running);
             if (numBoosts[running->getId()] != 0) {
@@ -573,6 +574,16 @@ static void check_and_update_boost_structures(){
         }
 
     }
+}
+
+static bool isHigherPriorityThreadPresent(){
+	int pr = translatePriority(running->getId());
+	int orangeCount = ready[1].size();
+	int redCount = ready[0].size();
+	if (pr == 0) return false;
+	if (pr == 1) return (redCount > 0);
+	if (pr == 2) return (redCount > 0 || orangeCount > 0);
+	return false;
 }
 
 static unordered_set<TCB*>& getBoostingStructureForPriority(Priority p) {

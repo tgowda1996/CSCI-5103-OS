@@ -6,7 +6,7 @@
 // Synchronization spinlock
 class SpinLock {
 public:
-  SpinLock();
+  SpinLock(){};
 
   // Acquire the lock. Spin until the lock is acquired if the lock is already
   // held
