@@ -54,12 +54,28 @@ void * worker_async_calls(void* args) {
     char* buffer = new char[BUFFER_SIZE];
     int bytes_read = 1, offset = 0;
     int fd = open(file_name, O_RDONLY);
-    while(bytes_read){
-        bytes_read = async_read(fd, buffer, BUFFER_SIZE, offset);
-        offset += bytes_read;
-    }
-    cout<<"Done with read\n"
+    int wfd = open("to_write", O_WRONLY|O_CREAT);
+    //while(bytes_read){
+    bytes_read = async_read(fd, buffer, BUFFER_SIZE, offset);
+        //offset += bytes_read;
+    //}
+    async_write(wfd, buffer, bytes_read, 0);
+    cout<<"Done with read and write\n";
     delete buffer;
+    return NULL;
+}
+
+void * worker_async_write(void* args) {
+    int my_tid = uthread_self();
+    //const char * file_name = "spam.csv";
+    const char * file_name = "to_write";
+    cout<<"Starting thread : "<<my_tid<<endl;
+    char buffer[] = "test";
+    int bytes_read = 1, offset = 0;
+    int fd = open(file_name, O_WRONLY|O_CREAT);
+    async_write(fd, buffer, 5, offset);
+    cout<<"Done with write\n";
+    //delete buffer;
     return NULL;
 }
 
@@ -70,8 +86,8 @@ int main(){
     loop_args* largs = getLoopArgs(FIRST_LOOP, SECOND_LOOP, THIRD_LOOP);
     io_args* ioargs = getIOArgs(FILE_NAME);
     threads[0] = uthread_create(worker_simulation_long_calculation, (void *)largs);
-    threads[1] = uthread_create(worker_async_calls, (void *)ioargs);
-
+    //threads[1] = uthread_create(worker_async_calls, (void *)ioargs);
+    threads[1] = uthread_create(worker_async_write, (void *)ioargs);
 
     cout<<"Threads Created\n";
     for (int i = 0; i < 2; i++) {
