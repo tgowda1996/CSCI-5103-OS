@@ -6,6 +6,7 @@ MAIN_OBJ = main.o
 TEST_PROFILE_1 = async_vs_sync.o
 TEST_PRIORITY_INVERSION = priority_inversion_test.o
 TEST_SPIN_VS_NORMAL = normal_vs_spin_test.o
+TEST_CASES_FOR_PUBLIC = tests_public_methods.o
 
 
 %.o: %.cpp $(DEPS)
@@ -22,6 +23,10 @@ priority_inversion: $(OBJ) $(TEST_PRIORITY_INVERSION)
 
 spin_vs_normal: $(OBJ) $(TEST_SPIN_VS_NORMAL)
 	$(CC) -o $@ $^ $(CFLAGS)
+
+test_public_methods: $(OBJ) $(TEST_CASES_FOR_PUBLIC)
+	$(CC) -o $@ $^ $(CFLAGS)
+
 
 .PHONY: clean
 
