@@ -60,7 +60,7 @@ void * worker_async_calls(void* args) {
 
 void * worker_async_write(void* args) {
     int my_tid = uthread_self();
-    const char * file_name = "to_write";
+    const char * file_name = "to_write_async_call";
     cout<<"Starting thread : "<<my_tid<<endl;
     char buffer[] = "test";
     int bytes_read = 1, offset = 0;
@@ -70,7 +70,7 @@ void * worker_async_write(void* args) {
     return NULL;
 }
 
-int main(){
+int main(int argc, char* argv[]){
     uthread_init(10000);
     if (argc < 2) {
         std::cerr << "Usage: ./test_async_methods <test_case_number>" << endl;
