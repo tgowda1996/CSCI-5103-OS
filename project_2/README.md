@@ -155,11 +155,11 @@ To solve this problem we do the following things
 To test this logic we use a scenario where there are 6 threads in total. 1 low priority thread holding a lock, 1 high priority thread waiting on the lock, 2 hp worker threads, and 2 med priority worker threads. We create the ap thread first, let it get the lock, yield, and then in the main thread create the other threads. 
 Ideally, this is the perfect scenario for priority inversion as according to our ready queue scheduling strategy the hp thread will be the last one to finish and thus have its priority inverted. 
 Our code is able to handle this situation as demonstrated in the output below:
-------------------------
+
 Usage command:
 make priority_inversion
 ./priority_inversion 
-------------------------
+
 Output
 
 ```
@@ -192,12 +192,11 @@ As we can see from the output thread 1 acquired lock and thread 2 tries to acqui
 
 ## Async vs Sync
 
----------------
 Usage Commands
 make async_vs_sync
 ./async_vs_sync <type> (1 for sync and 2 for async)
 Other parameters need to be tuned by changing the macros.
----------------
+
 
 We have defined a set of macros to control different variables - I/O size, loop size for other threads, file name.
 
