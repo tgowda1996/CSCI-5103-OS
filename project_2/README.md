@@ -143,8 +143,62 @@ Thread 5 finished working
 	```
 	This output tells us that thread 2 was started before thread 1 finished writing and tells us that our async write is working as expected.
 
+## Priority Inversion
+In order to implement priority inversion, we have used the suggested algorithm of random boosting. The problem of priority inversion occurs when a low priority thread holds a lock that a high priority thread is waiting on. 
+To solve this problem we do the following things
+* use three main data structures. A map to store the number of times a thread was boosted, 2 unordered sets containing the tcbs of priority 1 and priority 2 respectively. TCBs from set 1 is boosted to priority ORANGE and tcbs from set 2 are boosted to priority RED. 
+* Whenever a thread yields, we check:
+	* If the thread is holding any lock, depending on its priority, we put it in the appropriate set. Before adding we even check the size of the higher priority ready lists and don’t put it in the set if there are no higher priority jobs present in the ready queues.
+	* If the thread is not holding a lock, we check if it was ever boosted and decrease its priority.
+* Every time a yield operation is performed, either during pre-emption or a manual yield, we boost 5% or 1 whichever is higher from the medium priority threads and 10% or 1 (whichever is higher) from the low priority threads.
 
-## Async vs Sync 
+To test this logic we use a scenario where there are 6 threads in total. 1 low priority thread holding a lock, 1 high priority thread waiting on the lock, 2 hp worker threads, and 2 med priority worker threads. We create the ap thread first, let it get the lock, yield, and then in the main thread create the other threads. 
+Ideally, this is the perfect scenario for priority inversion as according to our ready queue scheduling strategy the hp thread will be the last one to finish and thus have its priority inverted. 
+Our code is able to handle this situation as demonstrated in the output below:
+------------------------
+Usage command:
+make priority_inversion
+./priority_inversion 
+------------------------
+Output
+
+```
+Acquiring lock for 1
+Threads Created
+Joining on - 1
+Acquiring lock for 2
+Starting thread : 3
+Starting thread : 4
+Out of lock
+Exiting thread 2
+Exiting thread 4
+Exiting thread 3
+Starting thread : 5
+Starting thread : 6
+Exiting thread 5
+Exiting thread 6
+Exiting thread 1
+Joining on - 2
+Joining on - 3
+Joining on - 4
+Joining on - 5
+Joining on - 6
+Exiting
+```
+
+As we can see from the output thread 1 acquired lock and thread 2 tries to acquire the lock. Hp threads 3 and 4 start executing. Meanwhile, the priority of thread 1 is boosted. It releases the lock and thread 2, which has a small critical section, is the first hp thread to exit. Thread 1 on the other hand is the last one to exit as we were able to drop its priority successfully.
+
+
+
+## Async vs Sync
+
+---------------
+Usage Commands
+make async_vs_sync
+./async_vs_sync <type> (1 for sync and 2 for async)
+Other parameters need to be tuned by changing the macros.
+---------------
+
 We have defined a set of macros to control different variables - I/O size, loop size for other threads, file name.
 
 Case 1: Large I/O and large calculation. Loop config = (1000,1000,100), File_name = "spam.csv", READ_WRITE_OPERATIONS=3000.
@@ -189,7 +243,8 @@ Case 3: Varying calculation, Fixed readwrite.
 
 
 ## Standard lock vs spin lock
-* Command to run the test: make spin_vs_normal 
+* Command to run the test: 
+make spin_vs_normal 
 ./spin_vs_normal
 This will run the profiling script which changes the values for multiple parameters. The one with 50 threads was chosen. quanta value needs to be set manually. Currently set to 10000.
 
