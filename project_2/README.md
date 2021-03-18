@@ -3,14 +3,15 @@ Tushar Gowda  -  gowda019
 Pierce Gruidl -  gruid018
 
 
-##Test cases
+## Test cases
 
-#####Lock and condition variable tests
+##### Lock and condition variable tests
 Command to be used: make test_public_methods
 ./test_public_methods <test_number>
 
 1. Testing condVariable wait and signal:
 In this test we created 3 threads. One was made to wait, one to signal and the other to aquire the lock. Threads were created in the same order. Below is the output for the test.
+```
 Threads Created
 Joining on - 1
 Thread 1 waiting
@@ -21,11 +22,13 @@ Thread 2 work after signal
 Thread 3 working
 Joining on - 2
 Joining on - 3
+```
 
 We can see that test thread 1 waits for the signal and thread 2 starts executing after that. This tells that the lock was released by thread 1. Thread after working, signals thread 1, which aquires the lock again. Since we follow hoare semantics, it lock is given back to thread 2 and the statement after signal is executed. Thread 3 aquires the lock after this as expected.
 
 2. Testing condVariable wait and broadcast:
 In this test we created 10 threads. 8 were made to wait, one to broadcast and the other to aquire the lock. Threads were created in the same order. Below is the output for the test.
+```
 Threads Created
 Joining on - 1
 Thread 1 waiting
@@ -57,11 +60,13 @@ Joining on - 7
 Joining on - 8
 Joining on - 9
 Joining on - 10
+```
 It can be seen that all the 8 threads wait on the condVar and are woken up in order as required by hoare semantics. The lock is returned to thread 9 which does further work. After that thread 10 takes the lock and proceeds with its work. If hoare semnatics wansnt working thread 10 might have started workign earlier when foloowing a fifo based round robin ready queue.
 
 3. Testing lock and unlock:
 We run 5 threads, each trying to access the same critical section. Thread 1 starts working and is prempted. Control is given to thread 2 and then 3 and so on. In all these we can see that critcal section for 2,3,4,5 doesnt start before thread 1 exits critical section. This pattern is followed for other threads as well. The start of critical section is denoted by a "start working" and the end is denoted by an "end working". Since there is no interleave between these statements from different threads, we can claim that our lock is working. Output:
 Threads Created
+```
 Joining on - 1
 Starting thread 1
 Thread 1 starts working
@@ -82,9 +87,11 @@ Thread 4 finished working
 Thread 5 starts working
 Joining on - 5
 Thread 5 finished working
+```
 
 4. Testing spinLock lock and unlock:
 Spin lock execute the same tpye of function. The only difference being the usage of spin locks instead of standard locks. The output produced is as follows:
+```
 Threads Created
 Joining on - 1
 Starting thread 1
@@ -106,11 +113,12 @@ Thread 4 finished working
 Thread 5 starts working
 Joining on - 5
 Thread 5 finished working
-
-#####Async Read and Write
+```
+##### Async Read and Write
 1. Testing async read: In this test we have 2 threads. The first thread does a async read, followed by a aync write. We test 2 properties of the read functionality: 
 	* Is it able to read succefully? - A file "to_read" is read and is written to the file "to_write". We can see that the contants of both the files match.
 	* Is it working asynchronuously? - For this we kept the time quanta high to make sure that a thread is not preempted between completion of I/O and printing of the "Done" msg. We can see the following output:
+	```
 	Threads Created
 	Joining on - 1
 	Starting thread : 1
@@ -118,11 +126,13 @@ Thread 5 finished working
 	Done with read and write
 	Joining on - 2
 	Exiting
+	```
 	This output tells us that thread 2 was started before thread 1 finished reading and writing and tells us that our async read is working as expected.
 
 2. Testing async write: In this test we have 2 threads. The first thread does a aync write and the second one is a worker thread doing some job(polling in this case). We test 2 properties of the write functionality: 
 	* Is it able to write succefully? - We write the the statement "test" to the file - "to_write_async_call". We can see that the file was successfully created and the required line is present.
 	* Is it working asynchronuously? - For this we kept the time quanta high to make sure that a thread is not preempted between completion of I/O and printing of the "Done" msg. We can see the following output:
+	```
 	Threads Created
 	Joining on - 1
 	Starting thread : 1
@@ -130,6 +140,7 @@ Thread 5 finished working
 	Done with write
 	Joining on - 2
 	Exiting
+	```
 	This output tells us that thread 2 was started before thread 1 finished writing and tells us that our async write is working as expected.
 
 
