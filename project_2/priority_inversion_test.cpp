@@ -37,6 +37,7 @@ void * worker_lock_acquire_lp(void* args) {
     uthread_increase_priority(0);
     uthread_yield();
     lock.unlock();
+    cout<<"Out of lock\n";
     for (int i = 0; i < largs->i; i++) {
         for (int j = 0; j < largs->j; j++) {
             for (int k = 0; k < largs->k; k++);

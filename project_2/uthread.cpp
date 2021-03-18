@@ -510,32 +510,32 @@ int uthread_yield(void)
 }
 
 static void boost_lp_lock_holding_threads(){
-    // boosting 10% lp threads
-    int numJobsToBoost = 1;
-    if (lowPriorityToBeBoosted.size() > 10) {
-        numJobsToBoost = lowPriorityToBeBoosted.size() / 10;
-    }
-    boosting_logic(lowPriorityToBeBoosted, numJobsToBoost);
 
     // boosting 5% of medium
-    numJobsToBoost = 1;
+    int numJobsToBoost = 1;
     if (medPriorityToBeBoosted.size() > 20) {
         numJobsToBoost = medPriorityToBeBoosted.size()/20;
     }
     boosting_logic(medPriorityToBeBoosted, numJobsToBoost);
+    
+    // boosting 10% lp threads
+    numJobsToBoost = 1;
+    if (lowPriorityToBeBoosted.size() > 10) {
+        numJobsToBoost = lowPriorityToBeBoosted.size() / 10;
+    }
+    boosting_logic(lowPriorityToBeBoosted, numJobsToBoost);
 }
 
 
 static void boosting_logic(unordered_set<TCB*>& boosting_info, int numJobsToBoost){
     int count = 1;
     for (unordered_set<TCB*>::iterator iter = boosting_info.begin(); iter != boosting_info.end(); iter++) {
-//        if (numBoosts.find(iter->getId()) == numBoosts.end()) {
-        if ((*iter)->getLockCount() == 0){
-            //boosting_info.erase(iter);
-        }
-        else {
+        if ((*iter)->getLockCount() != 0) {
             TCB* tcbToBeBoosted = (*iter);
+	   // cout<<"Boosting thread " << tcbToBeBoosted->getId()<<endl;
             _uthread_increase_priority(tcbToBeBoosted);
+	   // cout<<"Boosted to " << tcbToBeBoosted->getPriority() <<endl;
+	    if (tcbToBeBoosted->getPriority() == Priority::ORANGE) medPriorityToBeBoosted.insert(tcbToBeBoosted);
             boosting_info.erase(iter);
             numBoosts[tcbToBeBoosted->getId()] = numBoosts[tcbToBeBoosted->getId()]+1;
 
