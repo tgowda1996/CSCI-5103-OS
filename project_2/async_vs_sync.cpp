@@ -14,10 +14,10 @@ using std::endl;
 #define BUFFER_SIZE 4*1024*1024
 #define FIRST_LOOP 1000
 #define SECOND_LOOP 1000
-#define THIRD_LOOP 1000
+#define THIRD_LOOP 500
 #define FILE_NAME "spam.csv"
-#define READ_WRITE_OPERATIONS 1
-#define TYPE SYNC
+#define READ_WRITE_OPERATIONS 500
+#define TYPE ASYNC
 #define SYNC 1
 #define ASYNC 2
 
@@ -94,9 +94,15 @@ void * worker_async_calls(void* args) {
     return NULL;
 }
 
-int main(){
+int main(int argc, char* argv[]){
     uthread_init(100);
     int threads[4];
+    if (argc < 2){
+	    std::cerr<<"Illegel. Enter type as argument. 1 for sync and 2 for async\n";
+	    exit(1);
+    } 
+    int t = atoi(argv[1]);
+    if (t > 2) exit(1);
     auto t0 = std::chrono::high_resolution_clock::now();
     //const char* file_name = "to_read";
     loop_args* largs = getLoopArgs(FIRST_LOOP, SECOND_LOOP, THIRD_LOOP);
@@ -104,8 +110,8 @@ int main(){
     threads[0] = uthread_create(worker_simulation_long_calculation, (void *)largs);
     threads[1] = uthread_create(worker_simulation_long_calculation, (void *)largs);
     threads[2] = uthread_create(worker_simulation_long_calculation, (void *)largs);
-    if (TYPE == SYNC) threads[3] = uthread_create(worker_sync_calls, (void *)ioargs);
-    else if (TYPE == ASYNC) threads[3] = uthread_create(worker_async_calls, (void *)ioargs);
+    if (t == SYNC) threads[3] = uthread_create(worker_sync_calls, (void *)ioargs);
+    else if (t == ASYNC) threads[3] = uthread_create(worker_async_calls, (void *)ioargs);
 
 
     cout<<"Threads Created\n";
