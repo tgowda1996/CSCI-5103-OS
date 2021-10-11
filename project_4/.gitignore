@@ -1,0 +1,7 @@
+# Extensions to not include in repo
+*
+!/**/
+!*.*
+!Makefile
+*.o
+*.out
